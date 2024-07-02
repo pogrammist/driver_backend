@@ -1,0 +1,10 @@
+# Goals:
+
+- Admin
+	- Create Passengers, Drivers and Cars.  
+
+- Passenger
+	- Create request for the Driver.  
+
+- Driver
+	- Accept passenger request.  
