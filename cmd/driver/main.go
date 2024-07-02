@@ -1,7 +1,12 @@
 package main
 
+import (
+	"driver_backend/internal/config"
+)
+
 func main() {
-	// TODO: Init config: cleanenv
+	// Init config: cleanenv
+	cfg := config.MustLoad()
 
 	// TODO: Init logger: slog
 
