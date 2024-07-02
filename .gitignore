@@ -1,0 +1,6 @@
+# Ignore other system files
+.DS_Store
+Thumbs.db
+
+# Ignore database files
+*.db
