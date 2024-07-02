@@ -3,6 +3,8 @@ package main
 import (
 	"driver_backend/internal/config"
 	"driver_backend/internal/lib/logger/handlers/slogpretty"
+	"driver_backend/internal/lib/sl"
+	"driver_backend/internal/storage/sqlite"
 	"log/slog"
 	"os"
 )
@@ -22,7 +24,14 @@ func main() {
 	log.Info("starting driver server", slog.String("env", cfg.Env))
 	log.Debug("debug messages are enabled")
 
-	// TODO: Init storage: sqlite
+	// Init storage: sqlite
+	storage, err := sqlite.New(cfg.StoragePath)
+	if err != nil {
+		log.Error("failed to init storage", sl.Err(err))
+		os.Exit(1)
+	}
+
+	_ = storage
 
 	// TODO: Init router: chi, "chi render"
 

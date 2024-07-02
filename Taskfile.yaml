@@ -1,0 +1,13 @@
+# See: https://taskfile.dev/api/
+
+version: '3'
+
+tasks:
+  migrate:
+    desc: Run the migrator
+    cmds:
+      - go run ./cmd/migrator --storage-path=./storage/storage.db --migrations-path=./migrations
+    aliases: [migrate]
+
+  default:
+    deps: [migrate]
