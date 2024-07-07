@@ -3,7 +3,7 @@ package main
 import (
 	"driver_backend/internal/config"
 	"driver_backend/internal/lib/logger/handlers/slogpretty"
-	"driver_backend/internal/lib/sl"
+	"driver_backend/internal/lib/logger/sl"
 	"driver_backend/internal/storage/sqlite"
 	"log/slog"
 	"os"
