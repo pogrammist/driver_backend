@@ -1,10 +1,13 @@
 package sqlite
 
 import (
+	"context"
 	"database/sql"
+	"driver_backend/internal/storage"
+	"errors"
 	"fmt"
 
-	_ "github.com/mattn/go-sqlite3"
+	"github.com/mattn/go-sqlite3"
 )
 
 type Storage struct {
@@ -21,4 +24,34 @@ func New(storagePath string) (*Storage, error) {
 	}
 
 	return &Storage{db: db}, nil
+}
+
+// SaveUser saves user to db.
+func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (int64, error) {
+	const op = "storage.sqlite.SaveUser"
+
+	// Простенький запрос на добавление пользователя
+	stmt, err := s.db.Prepare("INSERT INTO users(email, pass_hash) VALUES(?, ?)")
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	res, err := stmt.ExecContext(ctx, email, passHash)
+	if err != nil {
+		var sqliteErr sqlite3.Error
+
+		if errors.As(err, &sqliteErr) && sqliteErr.ExtendedCode == sqlite3.ErrConstraintUnique {
+			return 0, fmt.Errorf("%s: %w", op, storage.ErrUserExists)
+		}
+
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	// Получаем ID созданной записи
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return id, nil
 }
