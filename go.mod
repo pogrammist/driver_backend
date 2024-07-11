@@ -4,12 +4,23 @@ go 1.22.2
 
 require (
 	github.com/fatih/color v1.17.0
+	github.com/go-chi/jwtauth v1.2.0
 	github.com/golang-migrate/migrate/v4 v4.17.1
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/mattn/go-sqlite3 v1.14.22
 )
 
 require github.com/stretchr/testify v1.8.4 // indirect
+
+require (
+	github.com/goccy/go-json v0.9.11 // indirect
+	github.com/lestrrat-go/backoff/v2 v2.0.7 // indirect
+	github.com/lestrrat-go/httpcc v1.0.0 // indirect
+	github.com/lestrrat-go/iter v1.0.0 // indirect
+	github.com/lestrrat-go/jwx v1.1.0 // indirect
+	github.com/lestrrat-go/option v1.0.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
+)
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect

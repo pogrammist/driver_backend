@@ -1,17 +1,27 @@
 package main
 
 import (
+	"context"
 	"driver_backend/internal/config"
+	"driver_backend/internal/services/auth"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"driver_backend/internal/http-server/handlers/auth/registration"
 	"driver_backend/internal/lib/logger/handlers/slogpretty"
 	"driver_backend/internal/lib/logger/sl"
 	"driver_backend/internal/storage/sqlite"
+	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 
 	mwLogger "driver_backend/internal/http-server/middleware/logger"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/jwtauth"
 )
 
 const (
@@ -19,6 +29,17 @@ const (
 	envDev   = "dev"
 	envProd  = "prod"
 )
+
+var tokenAuth *jwtauth.JWTAuth
+
+func init() {
+	tokenAuth = jwtauth.New("HS256", []byte("secret"), nil)
+
+	// For debugging/example purposes, we generate and print
+	// a sample jwt token with claims `user_id:123` here:
+	_, tokenString, _ := tokenAuth.Encode(map[string]interface{}{"user_id": 123})
+	fmt.Printf("DEBUG: a sample jwt is %s\n\n", tokenString)
+}
 
 func main() {
 	// Init config: cleanenv
@@ -36,19 +57,68 @@ func main() {
 		os.Exit(1)
 	}
 
-	_ = storage
+	authService := auth.New(log, storage, cfg.TokenTTL)
 
 	// Init router: chi, "chi render"
-	router := chi.NewRouter()
+	router := setupRouter(log, authService)
 
-	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
-	router.Use(middleware.Logger)
-	router.Use(mwLogger.New(log))
-	router.Use(middleware.Recoverer)
-	router.Use(middleware.URLFormat)
+	// Init server
+	srv := &http.Server{
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.HTTPServer.Timeout,
+		WriteTimeout: cfg.HTTPServer.Timeout,
+		IdleTimeout:  cfg.HTTPServer.IdleTimeout,
+	}
 
-	// TODO: Run server
+	// Run server
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Error("failed to start server", sl.Err(err))
+			os.Exit(1)
+		}
+	}()
+	log.Info("server started")
+
+	// Graceful shutdown
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGTERM, syscall.SIGINT)
+
+	sign := <-stop
+	log.Info("stopping server", slog.String("signal", sign.String()))
+
+	// TODO: move timeout to config
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Error("failed to stop server", sl.Err(err))
+
+		return
+	}
+
+	// TODO: Добавить отдельную остановку для SQLite сервера
+
+	log.Info("server gracefully stopped")
+}
+
+func setupRouter(log *slog.Logger, authService *auth.Auth) http.Handler {
+	r := chi.NewRouter()
+
+	r.Use(middleware.RequestID)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Logger)
+	r.Use(mwLogger.New(log))
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.URLFormat)
+
+	r.Post("/signup", registration.New(log, authService))
+
+	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("welcome anonymous"))
+	})
+
+	return r
 }
 
 func setupLogger(env string) *slog.Logger {
