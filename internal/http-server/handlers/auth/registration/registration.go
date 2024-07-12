@@ -10,7 +10,7 @@ import (
 
 	resp "driver_backend/internal/lib/api/response"
 	"driver_backend/internal/lib/logger/sl"
-	"driver_backend/internal/storage"
+	"driver_backend/internal/services/auth"
 
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
@@ -65,8 +65,7 @@ func New(log *slog.Logger, userSaver UserSaver) http.HandlerFunc {
 
 		userId, err := userSaver.RegisterNewUser(r.Context(), req.Email, req.Password)
 
-		// TODO: Исправить проверку. Не отлавливает ErrUserExists
-		if errors.Is(err, storage.ErrUserExists) {
+		if errors.Is(err, auth.ErrUserExists) {
 			log.Warn("user already exists", slog.String("email", req.Email))
 
 			render.JSON(w, r, resp.Error("user already exists"))
