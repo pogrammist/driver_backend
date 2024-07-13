@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"driver_backend/internal/http-server/handlers/auth/login"
 	"driver_backend/internal/http-server/handlers/auth/registration"
 	"driver_backend/internal/lib/logger/handlers/slogpretty"
 	"driver_backend/internal/lib/logger/sl"
@@ -57,7 +58,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	authService := auth.New(log, storage, cfg.TokenTTL)
+	authService := auth.New(log, storage, storage, storage, cfg.TokenTTL)
 
 	// Init router: chi, "chi render"
 	router := setupRouter(log, authService)
@@ -113,6 +114,7 @@ func setupRouter(log *slog.Logger, authService *auth.Auth) http.Handler {
 	r.Use(middleware.URLFormat)
 
 	r.Post("/signup", registration.New(log, authService))
+	r.Post("/signin", login.New(log, authService))
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("welcome anonymous"))
